@@ -42,7 +42,7 @@ export function EditorScreen({ session, onLeave }: Props) {
       />
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <CodeEditor value={content} onChange={setContent} onCursorChange={setCursor} />
+        <CodeEditor value={content} onChange={setContent} onCursorChange={handleCursorChange} />
         {content.length === 0 && (
           <p className="pointer-events-none absolute left-16 top-3 font-mono text-sm text-muted-foreground">
             Empty document — start typing to begin.
