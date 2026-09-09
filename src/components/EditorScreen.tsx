@@ -16,6 +16,16 @@ export function EditorScreen({ session, onLeave }: Props) {
   const [content, setContent] = useState(session.content);
   const [cursor, setCursor] = useState<CursorInfo>({ line: 1, column: 1, selection: 0 });
 
+  // Only update when it actually changed, so the editor doesn't re-render in a loop.
+  function handleCursorChange(next: CursorInfo) {
+    setCursor((prev) =>
+      prev.line === next.line && prev.column === next.column && prev.selection === next.selection
+        ? prev
+        : next,
+    );
+  }
+
+
   // Backend integration point: this hook will own the real socket connection.
   const { status, collaborators } = useWebSocket({
     sessionCode: session.sessionCode,
