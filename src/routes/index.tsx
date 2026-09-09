@@ -1,24 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { EditorScreen } from "@/components/EditorScreen";
+import { LandingPage } from "@/components/LandingPage";
+import type { Session } from "@/services/api";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "SyncScript — Real-time collaborative code editor" },
+      {
+        name: "description",
+        content:
+          "Write together in real time. Share a session code and edit one shared document with your collaborators — no accounts required.",
+      },
+      { property: "og:title", content: "SyncScript — Write together. In real time." },
+      {
+        property: "og:description",
+        content:
+          "A minimal collaborative code editor. Create a session, share the code, and edit together instantly.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
+  const [session, setSession] = useState<Session | null>(null);
+
+  if (session) {
+    return <EditorScreen session={session} onLeave={() => setSession(null)} />;
+  }
+
+  return <LandingPage onOpenSession={setSession} />;
 }
