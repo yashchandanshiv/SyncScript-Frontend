@@ -1,58 +1,88 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { type Collaborator, MOCK_COLLABORATORS } from "@/lib/mock-data";
 
-/**
- * WebSocket integration point.
- *
- * Real endpoint (NOT connected yet):
- *   ws://localhost:8080/ws?sessionCode={sessionCode}
- *
- * Outgoing operations the backend understands:
- *   { type: "insert", position: number, text: string }
- *   { type: "append", text: string }
- *   { type: "delete", position: number, length: number }
- *
- * Incoming: the server broadcasts the full document as plain text.
- *
- * For now this hook only drives UI state (status + collaborators). Replace the
- * body with a real `new WebSocket(...)` and call `onDocument` with each
- * broadcast payload — no component changes required.
- */
-
 export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
-
-export type EditorOperation =
-  | { type: "insert"; position: number; text: string }
-  | { type: "append"; text: string }
-  | { type: "delete"; position: number; length: number };
 
 type Options = {
   sessionCode: string;
-  /** Called with the full document text broadcast by the server. */
   onDocument?: (content: string) => void;
 };
 
-export function useWebSocket({ sessionCode }: Options) {
+export function useWebSocket({ sessionCode, onDocument }: Options) {
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
-  const [collaborators, setCollaborators] = useState<Collaborator[]>(MOCK_COLLABORATORS);
+
+  const [collaborators] = useState<Collaborator[]>(MOCK_COLLABORATORS);
+
+  const socketRef = useRef<WebSocket | null>(null);
+
+  // Keeps the latest onDocument callback without
+  // recreating the WebSocket connection.
+  const onDocumentRef = useRef(onDocument);
 
   useEffect(() => {
-    if (!sessionCode) return;
-    setStatus("connecting");
-    setCollaborators(MOCK_COLLABORATORS);
+    onDocumentRef.current = onDocument;
+  }, [onDocument]);
 
-    // TODO: const socket = new WebSocket(`ws://localhost:8080/ws?sessionCode=${sessionCode}`);
-    const timer = setTimeout(() => setStatus("connected"), 900);
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    if (!sessionCode) {
+      return;
+    }
+
+    setStatus("connecting");
+
+    const socket = new WebSocket(`ws://localhost:8080/ws?sessionCode=${sessionCode}`);
+
+    socketRef.current = socket;
+
+    socket.onopen = () => {
+      console.log("[syncscript] WebSocket connected");
+      setStatus("connected");
+    };
+
+    socket.onmessage = (event) => {
+      console.log("[syncscript] received:", event.data);
+
+      onDocumentRef.current?.(event.data);
+    };
+
+    socket.onerror = (error) => {
+      console.error("[syncscript] WebSocket error:", error);
+      setStatus("error");
+    };
+
+    socket.onclose = () => {
+      console.log("[syncscript] WebSocket disconnected");
+      setStatus("disconnected");
+    };
+
+    return () => {
+      socket.close();
+
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
+    };
   }, [sessionCode]);
 
-  /** TODO: socket.send(JSON.stringify(operation)) */
-  function sendOperation(operation: EditorOperation) {
-    if (import.meta.env.DEV) {
-      console.debug("[syncscript] queued operation", operation);
+  function sendDocument(content: string) {
+    const socket = socketRef.current;
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      console.warn("[syncscript] WebSocket is not connected");
+      return;
     }
+
+    socket.send(
+      JSON.stringify({
+        content,
+      }),
+    );
   }
 
-  return { status, collaborators, sendOperation, setStatus };
+  return {
+    status,
+    collaborators,
+    sendDocument,
+  };
 }

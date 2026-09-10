@@ -1,12 +1,9 @@
 /**
  * Backend integration point (Spring Boot REST).
  *
- * Real endpoints (NOT called yet):
+ * Real endpoints:
  *   POST /api/session/create
  *   POST /api/session/join?sessionCode={sessionCode}
- *
- * Replace the mock bodies below with real fetch() calls; the rest of the UI
- * only depends on the exported function signatures and the Session type.
  */
 
 export type Session = {
@@ -19,53 +16,45 @@ export type Session = {
 
 export const API_BASE_URL = "http://localhost:8080";
 
-const MOCK_DOCUMENT = `public class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello SyncScript!");
-    }
-}
-`;
-
-function randomCode() {
-  const alphabet = "ABCDEF0123456789";
-  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join(
-    "",
-  );
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/** TODO: POST `${API_BASE_URL}/api/session/create` */
+/**
+ * Create a new collaboration session.
+ */
 export async function createSession(): Promise<Session> {
-  await delay(600);
-  const now = new Date().toISOString();
-  return {
-    id: 1,
-    sessionCode: randomCode(),
-    content: "",
-    createdAt: now,
-    updatedAt: now,
-  };
-}
+  const response = await fetch(`${API_BASE_URL}/api/session/create`, {
+    method: "POST",
+  });
 
-/** TODO: POST `${API_BASE_URL}/api/session/join?sessionCode=${sessionCode}` */
-export async function joinSession(sessionCode: string): Promise<Session> {
-  await delay(700);
-  const code = sessionCode.trim().toUpperCase();
-
-  // Mock validation only — the real backend decides what is valid.
-  if (!/^[A-F0-9]{6}$/.test(code)) {
-    throw new Error("That session code doesn't exist. Check the code and try again.");
+  if (!response.ok) {
+    throw new Error("Couldn't create a session.");
   }
 
-  const now = new Date().toISOString();
-  return {
-    id: 1,
-    sessionCode: code,
-    content: MOCK_DOCUMENT,
-    createdAt: now,
-    updatedAt: now,
-  };
+  const session: Session = await response.json();
+
+  return session;
+}
+
+/**
+ * Join an existing collaboration session.
+ */
+export async function joinSession(sessionCode: string): Promise<Session> {
+  const code = sessionCode.trim().toUpperCase();
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/session/join?sessionCode=${encodeURIComponent(code)}`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    throw new Error(
+      error?.message ?? "That session code doesn't exist. Check the code and try again.",
+    );
+  }
+
+  const session: Session = await response.json();
+
+  return session;
 }

@@ -2,7 +2,11 @@ import { java } from "@codemirror/lang-java";
 import { oneDark } from "@codemirror/theme-one-dark";
 import CodeMirror, { EditorView, type ViewUpdate } from "@uiw/react-codemirror";
 
-export type CursorInfo = { line: number; column: number; selection: number };
+export type CursorInfo = {
+  line: number;
+  column: number;
+  selection: number;
+};
 
 type Props = {
   value: string;
@@ -15,6 +19,7 @@ export default function CodeEditorClient({ value, onChange, onCursorChange }: Pr
     const state = update.state;
     const range = state.selection.main;
     const line = state.doc.lineAt(range.head);
+
     onCursorChange({
       line: line.number,
       column: range.head - line.from + 1,
