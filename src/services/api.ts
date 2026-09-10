@@ -14,7 +14,7 @@ export type Session = {
   updatedAt: string;
 };
 
-export const API_BASE_URL = "http://localhost:8080";
+export const API_BASE_URL = "https://syncscript.duckdns.org";
 
 /**
  * Create a new collaboration session.
