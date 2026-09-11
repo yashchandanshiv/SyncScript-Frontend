@@ -29,6 +29,7 @@ export function useWebSocket({ sessionCode, onDocument }: Options) {
       return;
     }
 
+    //Added Status Connecting
     setStatus("connecting");
 
     //
@@ -57,6 +58,7 @@ export function useWebSocket({ sessionCode, onDocument }: Options) {
       setStatus("disconnected");
     };
 
+    //"Closing Socket when sessionCode changes or component unmounts"
     return () => {
       socket.close();
 
