@@ -31,6 +31,8 @@ export function useWebSocket({ sessionCode, onDocument }: Options) {
 
     setStatus("connecting");
 
+    //
+
     const socket = new WebSocket(`wss://syncscript.duckdns.org/ws?sessionCode=${sessionCode}`);
     socketRef.current = socket;
 
